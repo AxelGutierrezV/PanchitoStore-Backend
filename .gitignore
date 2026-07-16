@@ -1,0 +1,19 @@
+# Node.js
+**/node_modules/
+**/npm-debug.log*
+
+# Variables de entorno
+**/.env
+**/.env.local
+**/.env.production
+
+# IDEs y Editores
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

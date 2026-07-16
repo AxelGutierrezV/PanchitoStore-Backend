@@ -1,0 +1,215 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - fullstack
+
+  mongo:
+    image: mongo
+    container_name: mongo_db
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodata:/data/db
+    networks:
+    - fullstack
+    
+  api-gateway:
+    build:
+      context: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      AUTH_SERVICE_URL: http://user-service:3010
+      PRODUCT_SERVICE_URL: http://product-service:3020
+      ORDER_SERVICE_URL: http://order-service:3030
+      INVENTORY_SERVICE_URL: http://inventory-service:3040
+      SHIPPING_SERVICE_URL: http://shipping-service:3050
+      CART_SERVICE_URL: http://cart-service:3060
+      LOGGING_SERVICE_URL: http://audit-service:3070
+      NOTIFICATION_SERVICE_URL: http://notification-service:3080
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+      - inventory-service
+      - shipping-service
+      - cart-service
+      - audit-service
+      - notification-service
+    networks:
+      - fullstack
+
+  user-service:
+    build: ./user-service
+    container_name: user_service
+    ports:
+      - "3010:3010"
+    volumes:
+      - ./user-service:/app
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: user_db
+      DB_PASSWORD: 1234
+      DB_PORT: 5432
+      LOGGING_SERVICE_URL: http://audit-service:3070
+    networks:
+      - fullstack
+
+  product-service:
+    build: ./product-service
+    container_name: product_service
+    ports:
+      - "3020:3020"
+    volumes:
+      - ./product-service:/app
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: product_db
+      DB_PASSWORD: 1234
+      DB_PORT: 5432
+      INVENTORY_SERVICE_URL: http://inventory-service:3040
+      LOGGING_SERVICE_URL: http://audit-service:3070
+    networks:
+      - fullstack
+
+
+  order-service:
+    build: ./order-service
+    container_name: order_service
+    ports:
+      - "3030:3030"
+    volumes:
+      - ./order-service:/app
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: order_db
+      DB_PASSWORD: 1234
+      DB_PORT: 5432
+      INVENTORY_SERVICE_URL: http://inventory-service:3040
+      SHIPPING_SERVICE_URL: http://shipping-service:3050
+      CART_SERVICE_URL: http://cart-service:3060
+      PAYMENT_SERVICE_URL: http://payment-service-external:4000
+      LOGGING_SERVICE_URL: http://audit-service:3070
+      CUSTOMER_SERVICE_URL: http://user-service:3010
+      NOTIFICATION_SERVICE_URL: http://notification-service:3080
+    networks:
+      - fullstack
+
+  inventory-service:
+    build: ./inventory-service
+    container_name: inventory_service
+    ports:
+      - "3040:3040"
+    volumes:
+      - ./inventory-service:/app
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: inventory_db
+      DB_PASSWORD: 1234
+      DB_PORT: 5432
+      LOGGING_SERVICE_URL: http://audit-service:3070
+    networks:
+      - fullstack
+
+  shipping-service:
+    build: ./shipping-service
+    container_name: shipping_service
+    ports:
+      - "3050:3050"
+    volumes:
+      - ./shipping-service:/app
+    depends_on:
+      - postgres
+    environment:
+      DB_USER: postgres
+      DB_HOST: postgres
+      DB_NAME: shipping_db
+      DB_PASSWORD: 1234
+      DB_PORT: 5432
+      ORDER_SERVICE_URL: http://order_service:3030
+      LOGGING_SERVICE_URL: http://audit-service:3070
+    networks:
+      - fullstack
+
+  cart-service:
+    build: ./cart-service
+    container_name: cart_service
+    ports:
+      - "3060:3060"
+    volumes:
+      - ./cart-service:/app
+    depends_on:
+      - mongo
+    environment:
+      MONGO_URI: mongodb://mongo:27017/cart_db
+    networks:
+      - fullstack
+
+  payment-service-external:
+    build: ./payment-service-external
+    container_name: payment_service-external
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./payment-service-external:/app
+    environment:
+      LOGGING_SERVICE_URL: http://audit-service:3070 
+    networks:
+      - fullstack
+      
+  audit-service:
+    build: ./audit-service
+    container_name: audit_service
+    ports:
+      - "3070:3070"
+    volumes:
+      - ./audit-service:/app
+    depends_on:
+      - mongo
+    networks:
+      - fullstack
+    environment:
+      MONGO_URI: mongodb://mongo:27017/audit_db
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "3080:3080"
+    volumes:
+      - ./notification-service:/app
+    networks:
+      - fullstack
+      
+volumes:
+  pgdata:
+  mongodata:
+
+networks:
+  fullstack:
+    external: true
