@@ -17,3 +17,5 @@
 # Sistema operativo
 .DS_Store
 Thumbs.db
+*.sql
+db migration
