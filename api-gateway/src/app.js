@@ -161,13 +161,12 @@ app.use(
 // LOGGING
 // =========================
 
+
 app.use(
   "/api/logs",
   createProxyMiddleware({
     target: process.env.LOGGING_SERVICE_URL,
-    changeOrigin: true,
-    pathRewrite: (path) =>
-      `/api/logs${path}`
+    changeOrigin: true
   })
 );
 
@@ -180,9 +179,10 @@ app.get("/test-audit", async (req, res) => {
       `${process.env.LOGGING_SERVICE_URL}/api/logs`
     );
 
-    const text = await response.text();
+    const data =
+      await response.json();
 
-    res.send(text);
+    res.json(data);
 
   } catch (error) {
 

@@ -4,7 +4,6 @@ const router = express.Router();
 const AuditLog = require("../models/auditLog");
 
 
-// ✅ CREATE LOG
 router.post("/logs", async (req, res) => {
   try {
     const log = await AuditLog.create(req.body);
@@ -15,7 +14,6 @@ router.post("/logs", async (req, res) => {
 });
 
 
-// ✅ GET LOGS (con filtros)
 router.get("/logs", async (req, res) => {
   try {
     const { usuario_id, servicio } = req.query;
