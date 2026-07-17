@@ -194,7 +194,7 @@ services:
     networks:
       - fullstack
     environment:
-      MONGO_URI: mongodb://mongo:27017/audit_db
+      MONGO_URL: mongodb://mongo:27017/audit_db
 
   notification-service:
     build: ./notification-service
