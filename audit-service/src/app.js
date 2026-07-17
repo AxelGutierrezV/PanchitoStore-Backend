@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // ✅ conexión Mongo
-mongoose.connect(process.env.MONGO_URL)
+mongoose.connect(`${process.env.MONGO_URL}/audit_db`)
   .then(() => console.log("Mongo conectado"))
   .catch(err => console.log(err));
 
