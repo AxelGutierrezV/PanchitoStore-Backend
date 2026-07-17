@@ -171,6 +171,31 @@ app.use(
   })
 );
 
+
+app.get("/test-audit", async (req, res) => {
+
+  try {
+
+    const response = await fetch(
+      `${process.env.LOGGING_SERVICE_URL}/api/logs`
+    );
+
+    const text = await response.text();
+
+    res.send(text);
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: error.message
+    });
+
+  }
+
+});
+
 // =========================
 // NOTIFICATIONS
 // =========================
