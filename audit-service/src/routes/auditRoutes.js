@@ -14,7 +14,7 @@ router.post("/logs", async (req, res) => {
 });
 
 
-router.get("/api/logs", async (req, res) => {
+router.get("/logs", async (req, res) => {
   try {
     const { usuario_id, servicio } = req.query;
 
