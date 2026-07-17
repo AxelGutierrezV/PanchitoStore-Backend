@@ -166,7 +166,9 @@ app.use(
   "/api/logs",
   createProxyMiddleware({
     target: process.env.LOGGING_SERVICE_URL,
-    changeOrigin: true
+    changeOrigin: true,
+    pathRewrite: (path) =>
+      `/api/logs${path}`
   })
 );
 
