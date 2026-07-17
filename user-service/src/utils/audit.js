@@ -3,7 +3,7 @@ const axios = require("axios");
 const logAction = async ({ usuario_id, rol, accion, detalle }) => {
   try {
 
-    await axios.post("http://audit-service:3070/api/logs", {
+    await axios.post(`${process.env.LOGGING_SERVICE_URL}/api/logs`, {
       usuario_id: Number(usuario_id),
       rol: String(rol), 
       accion,
