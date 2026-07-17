@@ -112,7 +112,7 @@ services:
       CART_SERVICE_URL: http://cart-service:3060
       PAYMENT_SERVICE_URL: http://payment-service-external:4000
       LOGGING_SERVICE_URL: http://audit-service:3070
-      CUSTOMER_SERVICE_URL: http://user-service:3010
+      AUTH_SERVICE_URL: http://user-service:3010
       NOTIFICATION_SERVICE_URL: http://notification-service:3080
     networks:
       - fullstack

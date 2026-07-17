@@ -4,8 +4,10 @@
 
 # Variables de entorno
 **/.env
+**/*.sql
 **/.env.local
 **/.env.production
+docker-compose.yml
 
 # IDEs y Editores
 .idea/
@@ -17,3 +19,5 @@
 # Sistema operativo
 .DS_Store
 Thumbs.db
+*.sql
+db migration

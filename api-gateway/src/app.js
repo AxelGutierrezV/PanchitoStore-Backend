@@ -26,9 +26,10 @@ app.use(
     target: process.env.AUTH_SERVICE_URL,
     changeOrigin: true,
     pathRewrite: (path) =>
-      `/api/employees${path}`
+      `/api/employees${path}`,
   })
 );
+
 
 app.use(
   "/api/roles",
@@ -39,6 +40,7 @@ app.use(
       `/api/roles${path}`
   })
 );
+
 
 app.use(
   "/api/clients",
