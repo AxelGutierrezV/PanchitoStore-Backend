@@ -27,33 +27,8 @@ app.use(
     changeOrigin: true,
     pathRewrite: (path) =>
       `/api/employees${path}`,
-
-    onProxyReq(proxyReq, req) {
-      console.log(process.env.AUTH_SERVICE_URL);
-      
-      console.log(
-        "Proxy:",
-        req.method,
-        req.originalUrl,
-        "→",
-        process.env.AUTH_SERVICE_URL
-      );
-    }
-
   })
 );
-
-
-app.get("/test-user", async (req, res) => {
-
-  const response = await fetch(
-    `${process.env.AUTH_SERVICE_URL}/login`
-  );
-
-  res.json(await response.text());
-
-});
-
 
 
 app.use(

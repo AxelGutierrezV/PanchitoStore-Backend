@@ -48,7 +48,7 @@ exports.createOrderFromCart = async (req, res) => {
     const { cliente_id } = req.body;
 
     const clientResponse = await axios.get(
-      `${process.env.CUSTOMER_SERVICE_URL}/api/clients/${cliente_id}`
+      `${process.env.AUTH_SERVICE_URL}/api/clients/${cliente_id}`
     );
 
     const client = clientResponse.data;
@@ -655,7 +655,7 @@ exports.getOrderById = async (req, res) => {
     try {
 
       const clientResponse = await axios.get(
-        `${process.env.CUSTOMER_SERVICE_URL}/api/clients/${order.cliente_id}`
+        `${process.env.AUTH_SERVICE_URL}/api/clients/${order.cliente_id}`
       );
 
       cliente = clientResponse.data;

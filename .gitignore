@@ -4,6 +4,7 @@
 
 # Variables de entorno
 **/.env
+**/*.sql
 **/.env.local
 **/.env.production
 
