@@ -16,6 +16,15 @@ mongoose.connect(process.env.MONGO_URL)
 
 app.use("/api", auditRoutes);
 
+const PORT = process.env.PORT;
+
+app.listen(PORT, () => {
+    console.log(`Audit Service en puerto ${PORT}`);
+});
+
+/*
 app.listen(3070, () => {
   console.log("Audit service running on port 3070");
 });
+
+*/
