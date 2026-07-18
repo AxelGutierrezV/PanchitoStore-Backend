@@ -45,7 +45,7 @@ exports.createOrder = async (req, res) => {
 exports.createOrderFromCart = async (req, res) => {
   try {
 
-    const { cliente_id } = req.body;
+    const { cliente_id, coupon_code } = req.body;
 
     const clientResponse = await axios.get(
       `${process.env.AUTH_SERVICE_URL}/api/clients/${cliente_id}`
@@ -113,12 +113,96 @@ exports.createOrderFromCart = async (req, res) => {
     // =========================
     // TOTAL
     // =========================
+    let discount = 0;
 
-    const total = cart.items.reduce(
+    let appliedCoupon = null;
+
+    const subtotal = cart.items.reduce(
       (sum, item) =>
-        sum + Number(item.precio) * Number(item.cantidad),
+        sum +
+        Number(item.precio) *
+        Number(item.cantidad),
       0
     );
+
+    let total = subtotal;
+
+    if (coupon_code) {
+
+      try {
+
+        const couponResponse =
+          await axios.post(
+            `${process.env.PRODUCT_SERVICE_URL}/api/promotions/validate`,
+            {
+              code: coupon_code
+            }
+          );
+
+        appliedCoupon =
+          couponResponse.data;
+
+        const eligibleItems =
+          cart.items.filter(item =>
+            appliedCoupon.products.includes(
+              Number(item.producto_id)
+            )
+          );
+
+        const eligibleSubtotal =
+          eligibleItems.reduce(
+            (sum, item) =>
+              sum +
+              Number(item.precio) *
+              Number(item.cantidad),
+            0
+          );
+
+        if (
+          appliedCoupon.tipo ===
+          "PORCENTAJE"
+        ) {
+
+          discount =
+            eligibleSubtotal *
+            Number(
+              appliedCoupon.valor
+            ) / 100;
+
+        }
+
+        else if (
+          appliedCoupon.tipo ===
+          "MONTO"
+        ) {
+
+          discount =
+            Math.min(
+              Number(
+                appliedCoupon.valor
+              ),
+              eligibleSubtotal
+            );
+
+        }
+
+        total =
+          subtotal - discount;
+
+      } catch (error) {
+
+        console.error(
+          "Coupon validation:",
+          error.message
+        );
+
+      }
+
+    }
+
+    if (total < 0) {
+      total = 0;
+    }
 
     const today = new Date();
 
@@ -182,25 +266,41 @@ exports.createOrderFromCart = async (req, res) => {
 
     const orderResult = await pool.query(
       `
-    INSERT INTO orders
-    (
-      cliente_id,
-      total,
-      estado_id,
-      order_code,
-      transaction_id
-    )
-    VALUES ($1,$2,$3,$4,$5)
-    RETURNING *
+INSERT INTO orders
+(
+  cliente_id,
+  subtotal,
+  discount,
+  total,
+  coupon_code,
+  estado_id,
+  order_code,
+  transaction_id
+)
+VALUES
+(
+  $1,
+  $2,
+  $3,
+  $4,
+  $5,
+  $6,
+  $7,
+  $8
+)
+RETURNING *
       `,
-
       [
         cliente_id,
+        subtotal,
+        discount,
         total,
+        appliedCoupon?.codigo || null,
         1,
         orderCode,
         transactionId
       ]
+
 
     );
 
@@ -457,6 +557,28 @@ exports.createOrderFromCart = async (req, res) => {
       console.error(error.message);
     }
 
+    const productsHtml =
+      cart.items
+        .map(item => `
+      <tr>
+        <td style="padding:8px;border:1px solid #ddd;">
+          ${item.nombre}
+        </td>
+
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+          ${item.cantidad}
+        </td>
+
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+          S/ ${Number(item.precio).toFixed(2)}
+        </td>
+
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+          S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
+        </td>
+      </tr>
+    `)
+        .join("");
     // =========================
     // EMAIL
     // =========================
@@ -469,35 +591,126 @@ exports.createOrderFromCart = async (req, res) => {
           to: client.email,
           subject: `Compra confirmada - ${order.order_code}`,
           html: `
-        <h1>Gracias por tu compra</h1>
+  <h1>
+    Gracias por tu compra
+  </h1>
 
-        <p>Hola ${client.nombre},</p>
+  <p>
+    Hola ${client.nombre},
+  </p>
 
-        <p>Tu pedido fue registrado correctamente.</p>
+  <p>
+    Tu pedido fue registrado correctamente.
+  </p>
 
-        <hr />
+  <hr />
 
+  <p>
+    <strong>Pedido:</strong>
+    ${order.order_code}
+  </p>
+
+  <p>
+    <strong>Transacción:</strong>
+    ${order.transaction_id}
+  </p>
+
+  <h3>
+    Productos comprados
+  </h3>
+
+  <table
+    style="
+      border-collapse:collapse;
+      width:100%;
+    "
+  >
+
+    <thead>
+
+      <tr>
+
+        <th
+          style="
+            border:1px solid #ddd;
+            padding:8px;
+          "
+        >
+          Producto
+        </th>
+
+        <th
+          style="
+            border:1px solid #ddd;
+            padding:8px;
+          "
+        >
+          Cantidad
+        </th>
+
+        <th
+          style="
+            border:1px solid #ddd;
+            padding:8px;
+          "
+        >
+          Precio
+        </th>
+
+        <th
+          style="
+            border:1px solid #ddd;
+            padding:8px;
+          "
+        >
+          Subtotal
+        </th>
+
+      </tr>
+
+    </thead>
+
+    <tbody>
+
+      ${productsHtml}
+
+    </tbody>
+
+  </table>
+
+  <br />
+
+  <p>
+    <strong>Subtotal:</strong>
+    S/ ${Number(subtotal).toFixed(2)}
+  </p>
+
+  <p>
+    <strong>Descuento:</strong>
+    S/ ${Number(discount).toFixed(2)}
+  </p>
+
+  <p>
+    <strong>Total:</strong>
+    S/ ${Number(total).toFixed(2)}
+  </p>
+
+  ${appliedCoupon
+              ? `
         <p>
-          <strong>Pedido:</strong>
-          ${order.order_code}
-        </p>
-
-        <p>
-          <strong>Transacción:</strong>
-          ${order.transaction_id}
-        </p>
-
-        <p>
-          <strong>Total:</strong>
-          S/ ${Number(total).toFixed(2)}
-        </p>
-
-        <hr />
-
-        <p>
-          Gracias por comprar en Panchito Store.
+          <strong>Cupón aplicado:</strong>
+          ${appliedCoupon.codigo}
         </p>
       `
+              : ""
+            }
+
+  <hr />
+
+  <p>
+    Gracias por comprar en Panchito Store.
+  </p>
+`
         }
       );
 
@@ -518,8 +731,13 @@ exports.createOrderFromCart = async (req, res) => {
       message: "Compra completada",
       order_id: order.id,
       order_code: order.order_code,
-      transaction_id: order.transaction_id,
-      total
+      transaction_id:
+        order.transaction_id,
+      subtotal,
+      discount,
+      total,
+      coupon_code:
+        appliedCoupon?.codigo || null
     });
 
   } catch (error) {
@@ -532,7 +750,6 @@ exports.createOrderFromCart = async (req, res) => {
 
   }
 };
-
 
 exports.getOrders = async (req, res) => {
   try {

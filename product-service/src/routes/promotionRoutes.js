@@ -46,5 +46,15 @@ router.put(
 );
 
 
+router.delete(
+  "/:id",
+  controller.deletePromotion
+);
+
+router.post(
+  "/validate",
+  controller.validateCoupon
+);
+
 module.exports = router;
 
