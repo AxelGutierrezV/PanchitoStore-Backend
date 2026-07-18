@@ -9,7 +9,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ conexión Mongo
 mongoose.connect(process.env.MONGO_URL)
   .then(() => console.log("Mongo conectado"))
   .catch(err => console.log(err));
