@@ -4,7 +4,6 @@ const axios = require("axios");
 //crear envío
 exports.createShipment = async (req, res) => {
   try {
-    console.log("BODY RECEIVED:", req.body);
     const { order_id, cliente_id, warehouse_id, direccion, ciudad } = req.body;
 
     // ✅ validaciones
@@ -231,6 +230,10 @@ exports.updateShipmentStatus = async (req, res) => {
         shipment.order_id
       );
 
+    console.log(
+      "Nuevo estado calculado:",
+      orderStatusId
+    );
 
     try {
 

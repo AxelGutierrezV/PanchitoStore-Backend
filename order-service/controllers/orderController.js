@@ -351,7 +351,10 @@ RETURNING *
     const inventoryResponse = await axios.post(
       `${process.env.INVENTORY_SERVICE_URL}/api/inventory/reduce-order`,
       {
+        items: cart.items,
+        order_code: order.order_code,
         items: cart.items
+
       }
     );
 

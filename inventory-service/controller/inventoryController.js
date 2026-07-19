@@ -90,7 +90,9 @@ exports.reduceStock = async (req, res) => {
 exports.reduceOrderStock = async (req, res) => {
     try {
 
-        const { items, orderId } = req.body;
+
+        const { items, orderId, orderCode } = req.body;
+
 
         if (!items || items.length === 0) {
             return res.status(400).json({
@@ -176,9 +178,11 @@ exports.reduceOrderStock = async (req, res) => {
                     allocation.inventory.warehouse_id,
                     "OUT",
                     "SALE",
-                    orderId
-                        ? `ORD-${orderId}`
-                        : "ORD-UNKNOWN",
+                    orderCode
+                        ? orderCode
+                        : orderId
+                            ? `ORD-${orderId}`
+                            : "ORD-UNKNOWN",
                     allocation.cantidad
                 ]
             );
