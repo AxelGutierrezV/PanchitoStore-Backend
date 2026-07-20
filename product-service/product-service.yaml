@@ -1,0 +1,132 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Product Service
+  version: 1.0.0
+  description: Gestión de productos, categorías, promociones y cupones.
+
+servers:
+  - url: https://product-service.up.railway.app/api
+
+tags:
+  - name: Products
+  - name: Categories
+  - name: Promotions
+
+paths:
+
+  /products:
+    post:
+      tags:
+        - Products
+      summary: Crear producto
+
+    get:
+      tags:
+        - Products
+      summary: Obtener productos
+
+  /products/ActiveProducts:
+    get:
+      tags:
+        - Products
+      summary: Obtener productos activos
+
+  /products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Obtener producto por ID
+
+    put:
+      tags:
+        - Products
+      summary: Actualizar producto
+
+  /products/{id}/updateProductStatus:
+    patch:
+      tags:
+        - Products
+      summary: Actualizar estado de producto
+
+  /categories:
+    post:
+      tags:
+        - Categories
+      summary: Crear categoría
+
+    get:
+      tags:
+        - Categories
+      summary: Obtener categorías
+
+  /categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Obtener categoría
+
+    put:
+      tags:
+        - Categories
+      summary: Actualizar categoría
+
+    delete:
+      tags:
+        - Categories
+      summary: Eliminar categoría
+
+  /promotions:
+    get:
+      tags:
+        - Promotions
+      summary: Obtener promociones
+
+    post:
+      tags:
+        - Promotions
+      summary: Crear promoción
+
+  /promotions/{id}:
+    get:
+      tags:
+        - Promotions
+      summary: Obtener promoción
+
+    put:
+      tags:
+        - Promotions
+      summary: Actualizar promoción
+
+    delete:
+      tags:
+        - Promotions
+      summary: Eliminar promoción
+
+  /promotions/{id}/status:
+    patch:
+      tags:
+        - Promotions
+      summary: Cambiar estado de promoción
+
+  /promotions/{id}/products:
+    get:
+      tags:
+        - Promotions
+      summary: Obtener productos de la promoción
+
+    post:
+      tags:
+        - Promotions
+      summary: Asignar productos
+
+    put:
+      tags:
+        - Promotions
+      summary: Reemplazar productos asociados
+
+  /promotions/validate:
+    post:
+      tags:
+        - Promotions
+      summary: Validar cupón

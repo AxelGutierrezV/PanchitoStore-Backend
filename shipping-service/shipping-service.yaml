@@ -1,0 +1,122 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Shipping Service
+  version: 1.0.0
+  description: Gestión logística y seguimiento de envíos.
+
+servers:
+  - url: https://shipping-service.up.railway.app/api
+
+tags:
+  - name: Shipments
+
+paths:
+
+  /shipments:
+    post:
+      tags:
+        - Shipments
+      summary: Crear envío
+
+    get:
+      tags:
+        - Shipments
+      summary: Obtener todos los envíos
+
+  /shipments/stats:
+    get:
+      tags:
+        - Shipments
+      summary: Obtener estadísticas de envíos
+
+  /shipments/{id}:
+    get:
+      tags:
+        - Shipments
+      summary: Obtener envío por ID
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /shipments/{id}/status:
+    patch:
+      tags:
+        - Shipments
+      summary: Actualizar estado de envío
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /shipments/{id}/history:
+    get:
+      tags:
+        - Shipments
+      summary: Obtener historial de estados
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /shipments/{id}/items:
+    get:
+      tags:
+        - Shipments
+      summary: Obtener productos del envío
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /shipments/{shipmentId}/items:
+    post:
+      tags:
+        - Shipments
+      summary: Agregar producto al envío
+
+      parameters:
+        - in: path
+          name: shipmentId
+          required: true
+          schema:
+            type: integer
+
+  /shipments/order/{orderId}:
+    get:
+      tags:
+        - Shipments
+      summary: Obtener envío por orden
+
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: integer
+
+  /shipments/tracking/{trackingCode}:
+    get:
+      tags:
+        - Shipments
+      summary: Buscar envío por código de seguimiento
+
+      parameters:
+        - in: path
+          name: trackingCode
+          required: true
+          schema:
+            type: string

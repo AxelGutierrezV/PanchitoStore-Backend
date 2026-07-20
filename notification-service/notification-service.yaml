@@ -1,0 +1,37 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Notification Service
+  version: 1.0.0
+  description: Servicio encargado del envío de correos electrónicos.
+
+servers:
+  - url: https://notification-service.up.railway.app/api
+
+tags:
+  - name: Notifications
+
+paths:
+
+  /notifications/email:
+    post:
+      tags:
+        - Notifications
+
+      summary: Enviar correo electrónico
+
+      description: >
+        Envía correos electrónicos utilizando el proveedor Resend.
+
+      requestBody:
+        required: true
+
+      responses:
+        "200":
+          description: Correo enviado correctamente
+
+        "400":
+          description: Solicitud inválida
+
+        "500":
+          description: Error enviando correo

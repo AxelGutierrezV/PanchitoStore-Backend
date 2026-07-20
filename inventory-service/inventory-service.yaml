@@ -1,0 +1,113 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Inventory Service
+  version: 1.0.0
+  description: Gestión de inventario, almacenes y movimientos.
+
+servers:
+  - url: https://inventory-service.up.railway.app/api
+
+tags:
+  - name: Inventory
+  - name: Warehouses
+  - name: Movements
+
+paths:
+
+  /inventory:
+    post:
+      tags:
+        - Inventory
+      summary: Crear registro de inventario
+
+  /inventory/get_full_stock:
+    get:
+      tags:
+        - Inventory
+      summary: Obtener stock completo
+
+  /inventory/product/{producto_id}:
+    get:
+      tags:
+        - Inventory
+      summary: Obtener stock por producto
+
+      parameters:
+        - in: path
+          name: producto_id
+          required: true
+          schema:
+            type: integer
+
+  /inventory/reduce:
+    post:
+      tags:
+        - Inventory
+      summary: Reducir stock
+
+  /inventory/register-product:
+    post:
+      tags:
+        - Inventory
+      summary: Registrar producto en inventario
+
+  /inventory/check:
+    post:
+      tags:
+        - Inventory
+      summary: Verificar disponibilidad de stock
+
+  /inventory/reduce-order:
+    post:
+      tags:
+        - Inventory
+      summary: Reducir stock a partir de una orden
+
+  /inventory/stock/{productId}:
+    get:
+      tags:
+        - Inventory
+      summary: Obtener detalle de stock por producto
+
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: integer
+
+  /inventory/movements:
+    get:
+      tags:
+        - Movements
+      summary: Obtener movimientos de inventario
+
+    post:
+      tags:
+        - Movements
+      summary: Registrar movimiento manual
+
+  /warehouses:
+    post:
+      tags:
+        - Warehouses
+      summary: Crear almacén
+
+    get:
+      tags:
+        - Warehouses
+      summary: Obtener almacenes
+
+  /warehouses/{id}:
+    get:
+      tags:
+        - Warehouses
+      summary: Obtener almacén por ID
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer

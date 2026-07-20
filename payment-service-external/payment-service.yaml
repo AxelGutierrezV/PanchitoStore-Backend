@@ -1,0 +1,37 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Payment Service
+  version: 1.0.0
+  description: Servicio de simulación de pasarela de pago.
+
+servers:
+  - url: https://payment-service.up.railway.app/api
+
+tags:
+  - name: Payments
+
+paths:
+
+  /payments:
+    post:
+      tags:
+        - Payments
+      summary: Procesar pago
+
+      description: >
+        Simula una integración con una pasarela de pago externa y devuelve
+        el resultado de la transacción.
+
+      requestBody:
+        required: true
+
+      responses:
+        "200":
+          description: Pago procesado correctamente
+
+        "400":
+          description: Datos inválidos
+
+        "500":
+          description: Error procesando pago

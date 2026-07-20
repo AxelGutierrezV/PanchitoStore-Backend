@@ -1,0 +1,66 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Audit Service
+  version: 1.0.0
+  description: Servicio responsable del registro y consulta de eventos de auditoría.
+
+servers:
+  - url: https://audit-service.up.railway.app/api
+
+tags:
+  - name: Audit Logs
+
+paths:
+
+  /logs:
+    post:
+      tags:
+        - Audit Logs
+
+      summary: Registrar evento de auditoría
+
+      description: >
+        Registra un nuevo evento generado por cualquiera de los
+        microservicios de Panchito Store.
+
+      requestBody:
+        required: true
+
+      responses:
+        "200":
+          description: Log registrado correctamente
+
+        "500":
+          description: Error registrando log
+
+    get:
+      tags:
+        - Audit Logs
+
+      summary: Consultar registros de auditoría
+
+      description: >
+        Obtiene los registros almacenados en MongoDB. Permite
+        filtrar por usuario y servicio.
+
+      parameters:
+
+        - name: usuario_id
+          in: query
+          required: false
+          schema:
+            type: string
+
+        - name: servicio
+          in: query
+          required: false
+          schema:
+            type: string
+
+      responses:
+        "200":
+          description: Lista de registros
+
+        "500":
+          description: Error consultando logs

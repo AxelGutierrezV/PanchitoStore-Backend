@@ -1,0 +1,89 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Order Service
+  version: 1.0.0
+  description: Gestión de órdenes y estados de compra.
+
+servers:
+  - url: https://order-service.up.railway.app/api
+
+tags:
+  - name: Orders
+
+paths:
+
+  /orders:
+    post:
+      tags:
+        - Orders
+      summary: Crear orden
+
+    get:
+      tags:
+        - Orders
+      summary: Obtener todas las órdenes
+
+  /orders/from-cart:
+    post:
+      tags:
+        - Orders
+      summary: Crear orden desde carrito
+
+  /orders/stats:
+    get:
+      tags:
+        - Orders
+      summary: Obtener estadísticas de órdenes
+
+  /orders/{id}/status:
+    patch:
+      tags:
+        - Orders
+      summary: Actualizar estado de orden
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /orders/{id}/detail:
+    get:
+      tags:
+        - Orders
+      summary: Obtener detalle de orden
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Obtener orden por ID
+
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+
+  /orders/client/{clienteId}:
+    get:
+      tags:
+        - Orders
+      summary: Obtener órdenes de un cliente
+
+      parameters:
+        - in: path
+          name: clienteId
+          required: true
+          schema:
+            type: integer

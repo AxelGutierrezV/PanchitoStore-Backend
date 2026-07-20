@@ -1,0 +1,94 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Cart Service
+  version: 1.0.0
+  description: Gestión del carrito de compras.
+
+servers:
+  - url: https://order-service.up.railway.app/api
+
+tags:
+  - name: Cart
+
+paths:
+
+  /cart/{cliente_id}:
+    get:
+      tags:
+        - Cart
+
+      summary: Obtener carrito
+
+      parameters:
+        - in: path
+          name: cliente_id
+          required: true
+          schema:
+            type: integer
+
+    delete:
+      tags:
+        - Cart
+
+      summary: Vaciar carrito
+
+      parameters:
+        - in: path
+          name: cliente_id
+          required: true
+          schema:
+            type: integer
+
+  /cart/add:
+    post:
+      tags:
+        - Cart
+
+      summary: Agregar producto al carrito
+
+  /cart/remove:
+    post:
+      tags:
+        - Cart
+
+      summary: Remover producto del carrito
+
+  /cart/{cliente_id}/items/{producto_id}:
+    put:
+      tags:
+        - Cart
+
+      summary: Actualizar cantidad de producto
+
+      parameters:
+        - in: path
+          name: cliente_id
+          required: true
+          schema:
+            type: integer
+
+        - in: path
+          name: producto_id
+          required: true
+          schema:
+            type: integer
+
+    delete:
+      tags:
+        - Cart
+
+      summary: Eliminar producto del carrito
+
+      parameters:
+        - in: path
+          name: cliente_id
+          required: true
+          schema:
+            type: integer
+
+        - in: path
+          name: producto_id
+          required: true
+          schema:
+            type: integer

@@ -1,0 +1,142 @@
+openapi: 3.0.3
+
+info:
+  title: Panchito Store - Auth Service
+  version: 1.0.0
+  description: Gestión de clientes, empleados, roles y autenticación.
+
+servers:
+  - url: https://auth-service.up.railway.app/api
+
+tags:
+  - name: Clients
+  - name: Addresses
+  - name: Employees
+  - name: Roles
+
+paths:
+
+  /clients:
+    post:
+      tags:
+        - Clients
+      summary: Crear cliente
+
+    get:
+      tags:
+        - Clients
+      summary: Obtener todos los clientes
+
+  /clients/{id}:
+    get:
+      tags:
+        - Clients
+      summary: Obtener cliente por ID
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+
+    put:
+      tags:
+        - Clients
+      summary: Actualizar cliente
+
+    delete:
+      tags:
+        - Clients
+      summary: Eliminar cliente
+
+  /clients/change-password:
+    post:
+      tags:
+        - Clients
+      summary: Cambiar contraseña de cliente
+
+  /clients/{id}/addresses:
+    post:
+      tags:
+        - Addresses
+      summary: Registrar dirección
+
+    get:
+      tags:
+        - Addresses
+      summary: Obtener direcciones del cliente
+
+  /employees/login:
+    post:
+      tags:
+        - Employees
+      summary: Login de empleado
+
+  /employees:
+    post:
+      tags:
+        - Employees
+      summary: Registrar empleado
+
+    get:
+      tags:
+        - Employees
+      summary: Obtener empleados
+
+  /employees/profile:
+    get:
+      tags:
+        - Employees
+      summary: Obtener perfil autenticado
+
+  /employees/change-self-password:
+    put:
+      tags:
+        - Employees
+      summary: Cambiar contraseña propia
+
+  /employees/{id}:
+    get:
+      tags:
+        - Employees
+      summary: Obtener empleado
+
+    put:
+      tags:
+        - Employees
+      summary: Actualizar empleado
+
+  /employees/{id}/change-password:
+    put:
+      tags:
+        - Employees
+      summary: Cambiar contraseña de empleado
+
+  /employees/{id}/updateEmployeeStatus:
+    patch:
+      tags:
+        - Employees
+      summary: Actualizar estado de empleado
+
+  /roles:
+    get:
+      tags:
+        - Roles
+      summary: Listar roles
+
+    post:
+      tags:
+        - Roles
+      summary: Crear rol
+
+  /roles/{id}:
+    get:
+      tags:
+        - Roles
+      summary: Obtener rol por ID
+
+    put:
+      tags:
+        - Roles
+      summary: Actualizar rol
