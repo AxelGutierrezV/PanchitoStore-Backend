@@ -529,8 +529,7 @@ RETURNING *
       console.error(error.message);
     }
 
-    const productsHtml =
-      cart.items
+    const productsHtml =  cart.items
         .map(item => `
       <tr>
         <td style="padding:8px;border:1px solid #ddd;">
@@ -755,26 +754,204 @@ exports.getOrders = async (req, res) => {
 };
 
 exports.updateOrderStatus = async (req, res) => {
+
   try {
+
     const { id } = req.params;
+
     const { estado_id } = req.body;
 
     await pool.query(
-      `UPDATE orders
-       SET estado_id = $1
-       WHERE id = $2`,
+      `
+      UPDATE orders
+      SET estado_id = $1
+      WHERE id = $2
+      `,
       [estado_id, id]
     );
 
     await pool.query(
-      `INSERT INTO order_status_history
-       (order_id, estado_id)
-       VALUES ($1, $2)`,
+      `
+      INSERT INTO order_status_history
+      (
+        order_id,
+        estado_id
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
+      `,
       [id, estado_id]
     );
 
+    // =========================
+    // OBTENER DATOS ORDEN
+    // =========================
+
+    const orderResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM orders
+        WHERE id = $1
+        `,
+        [id]
+      );
+
+    const order =
+      orderResult.rows[0];
+
+    // =========================
+    // OBTENER NOMBRE DEL ESTADO
+    // =========================
+
+    const statusResult =
+      await pool.query(
+        `
+        SELECT nombre
+        FROM order_status
+        WHERE id = $1
+        `,
+        [estado_id]
+      );
+
+    const statusName =
+      statusResult.rows[0]?.nombre;
+
+    // =========================
+    // OBTENER CLIENTE
+    // =========================
+
+    const clientResponse =
+      await axios.get(
+        `${process.env.AUTH_SERVICE_URL}/api/clients/${order.cliente_id}`
+      );
+
+    const client =
+      clientResponse.data;
+
+    // =========================
+    // TEMPLATES EMAIL
+    // =========================
+
+    const templates = {
+
+      CONFIRMED: {
+
+        subject:
+          "Pedido confirmado",
+
+        html: `
+          <h2>Hola ${client.nombre}</h2>
+
+          <p>
+            Tu pedido
+            <strong>${order.order_code}</strong>
+            ha sido confirmado.
+          </p>
+
+          <p>
+            Estamos preparando tu compra.
+          </p>
+        `
+
+      },
+
+      SHIPPED: {
+
+        subject:
+          "Pedido enviado",
+
+        html: `
+          <h2>Hola ${client.nombre}</h2>
+
+          <p>
+            Tu pedido
+            <strong>${order.order_code}</strong>
+            ha sido enviado.
+          </p>
+
+          <p>
+            Muy pronto llegará a tu dirección.
+          </p>
+        `
+
+      },
+
+      DELIVERED: {
+
+        subject:
+          "Pedido entregado",
+
+        html: `
+          <h2>Hola ${client.nombre}</h2>
+
+          <p>
+            Tu pedido
+            <strong>${order.order_code}</strong>
+            fue entregado exitosamente.
+          </p>
+
+          <p>
+            Gracias por comprar en Panchito Store.
+          </p>
+        `
+
+      },
+
+      CANCELLED: {
+
+        subject:
+          "Pedido cancelado",
+
+        html: `
+          <h2>Hola ${client.nombre}</h2>
+
+          <p>
+            Tu pedido
+            <strong>${order.order_code}</strong>
+            ha sido cancelado.
+          </p>
+        `
+
+      }
+
+    };
+
+    const notification =
+      templates[statusName];
+
+    if (notification) {
+
+      try {
+
+        await axios.post(
+          `${process.env.NOTIFICATION_SERVICE_URL}/api/email/send`,
+          {
+            to: client.email,
+            subject:
+              notification.subject,
+            html:
+              notification.html
+          }
+        );
+
+      } catch (emailError) {
+
+        console.error(
+          "Error enviando correo:",
+          emailError.message
+        );
+
+      }
+
+    }
+
     res.json({
-      message: "Estado actualizado"
+      message:
+        "Estado actualizado"
     });
 
   } catch (error) {
@@ -782,9 +959,12 @@ exports.updateOrderStatus = async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Error actualizando estado"
+      error:
+        "Error actualizando estado"
     });
+
   }
+
 };
 
 exports.getOrderById = async (req, res) => {

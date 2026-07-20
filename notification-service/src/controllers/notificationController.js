@@ -1,9 +1,7 @@
 const resend = require("../config/resend");
 
 exports.sendEmail = async (req, res) => {
-
   try {
-
     const {
       to,
       subject,
