@@ -30,7 +30,7 @@ app.use((req, res) => {
     });
 });
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3020;
 
 app.listen(PORT, () => {
     console.log(`Product Service corriendo en puerto ${PORT}`);

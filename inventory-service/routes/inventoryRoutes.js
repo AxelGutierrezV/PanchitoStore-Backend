@@ -12,5 +12,5 @@ router.post('/check', controller.checkStock);
 router.post("/reduce-order",controller.reduceOrderStock);
 router.get("/stock/:productId",controller.getProductStockDetail);
 router.get("/movements",controller.getMovements);
-
+router.post("/movements",controller.createMovement);
 module.exports = router;

@@ -1,4 +1,6 @@
 const pool = require('../config/db');
+const axios = require("axios");
+
 
 exports.createInventory = async (req, res) => {
     const { producto_id, warehouse_id, stock } = req.body;
@@ -92,6 +94,11 @@ exports.reduceOrderStock = async (req, res) => {
 
 
         const { items, orderId, orderCode } = req.body;
+
+        console.log(
+            "REDUCE ORDER BODY:",
+            req.body
+        );
 
 
         if (!items || items.length === 0) {
@@ -348,6 +355,236 @@ ORDER BY fecha DESC
         res.status(500).json({
             error:
                 "Error obteniendo movimientos"
+        });
+
+    }
+
+};
+
+exports.createMovement = async (req, res) => {
+
+    try {
+
+        const {
+            producto_id,
+            warehouse_id,
+            tipo,
+            motivo,
+            cantidad,
+            referencia
+        } = req.body;
+
+        if (
+            !producto_id ||
+            !warehouse_id ||
+            !tipo ||
+            !motivo ||
+            !cantidad
+        ) {
+
+            return res.status(400).json({
+                error: "Faltan datos obligatorios"
+            });
+
+        }
+
+        await pool.query("BEGIN");
+
+        const inventoryResult =
+            await pool.query(
+                `
+        SELECT *
+        FROM inventory
+        WHERE producto_id = $1
+        AND warehouse_id = $2
+        `,
+                [
+                    producto_id,
+                    warehouse_id
+                ]
+            );
+
+        if (
+            inventoryResult.rows.length === 0
+        ) {
+
+            await pool.query("ROLLBACK");
+
+            return res.status(404).json({
+                error:
+                    "Registro de inventario no encontrado"
+            });
+
+        }
+
+        const inventory =
+            inventoryResult.rows[0];
+
+        const quantity =
+            Number(cantidad);
+
+        // ENTRADA
+        if (tipo === "IN") {
+
+            await pool.query(
+                `
+        UPDATE inventory
+        SET stock = stock + $1
+        WHERE id = $2
+        `,
+                [
+                    quantity,
+                    inventory.id
+                ]
+            );
+
+        }
+
+        // SALIDA
+        else if (tipo === "OUT") {
+
+            if (
+                Number(inventory.stock) <
+                quantity
+            ) {
+
+                await pool.query("ROLLBACK");
+
+                try {
+                    await axios.post(
+                        `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+                        {
+                            accion: "INVENTORY_MOVEMENT_REJECTED",
+                            detalle:
+                                `Stock insuficiente para salida. Producto ${producto_id} - Almacén ${warehouse_id} - Cantidad ${quantity}`,
+                            servicio: "inventory-service"
+                        }
+                    );
+                } catch (error) {
+                    console.error(error.message);
+                }
+                return res.status(400).json({
+                    error:
+                        "Stock insuficiente"
+                });
+
+            }
+
+            await pool.query(
+                `
+        UPDATE inventory
+        SET stock = stock - $1
+        WHERE id = $2
+        `,
+                [
+                    quantity,
+                    inventory.id
+                ]
+            );
+
+        }
+
+        else {
+
+            await pool.query("ROLLBACK");
+
+
+            return res.status(400).json({
+                error: "Tipo inválido"
+            });
+
+        }
+
+        // MOVIMIENTO
+        const movementResult =
+            await pool.query(
+                `
+        INSERT INTO inventory_movements
+        (
+          producto_id,
+          warehouse_id,
+          tipo,
+          motivo,
+          referencia,
+          cantidad
+        )
+        VALUES
+        (
+          $1,
+          $2,
+          $3,
+          $4,
+          $5,
+          $6
+        )
+        RETURNING *
+        `,
+                [
+                    producto_id,
+                    warehouse_id,
+                    tipo,
+                    motivo,
+                    referencia || null,
+                    quantity
+                ]
+            );
+
+        try {
+
+            await axios.post(
+                `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+                {
+                    accion: "INVENTORY_MOVEMENT_CREATED",
+                    detalle:
+                        `Movimiento ${tipo} ${motivo} - Producto ${producto_id} - Almacén ${warehouse_id} - Cantidad ${quantity}`,
+                    servicio: "inventory-service"
+                }
+            );
+
+        } catch (logError) {
+
+            console.error(
+                "Logging error:",
+                logError.message
+            );
+
+        }
+        await pool.query("COMMIT");
+
+        res.status(201).json({
+            message:
+                "Movimiento registrado",
+            movement:
+                movementResult.rows[0]
+        });
+
+    } catch (error) {
+        try {
+
+            await axios.post(
+                `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+                {
+                    accion: "INVENTORY_MOVEMENT_ERROR",
+                    detalle:
+                        `Error registrando movimiento producto ${req.body.producto_id}`,
+                    servicio: "inventory-service"
+                }
+            );
+
+        } catch (logError) {
+
+            console.error(logError.message);
+
+        }
+        await pool.query(
+            "ROLLBACK"
+        );
+
+        console.error(error);
+
+        res.status(500).json({
+            error:
+                "Error registrando movimiento"
         });
 
     }

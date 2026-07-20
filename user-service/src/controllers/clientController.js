@@ -40,8 +40,8 @@ exports.createClient = async (req, res) => {
 };
 
 exports.loginClient = async (req, res) => {
-    console.log("intento de login",req.body.email);
-    
+    console.log("intento de login", req.body.email);
+
     try {
         const { email, password } = req.body;
 
@@ -129,40 +129,130 @@ exports.getAllClients = async (req, res) => {
     }
 };
 
-
 exports.updateClient = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { nombre, email, telefono } = req.body;
+  try {
 
-        const result = await pool.query(
-            `UPDATE clientes
-             SET nombre = $1,
-                 email = $2,
-                 telefono = $3
-             WHERE id = $4
-             RETURNING *`,
-            [nombre, email, telefono, id]
-        );
+    const { id } = req.params;
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Cliente no encontrado'
-            });
-        }
+    const {
+      nombre,
+      email,
+      telefono,
+      activo
+    } = req.body;
 
-        res.json({
-            message: 'Cliente actualizado',
-            client: result.rows[0]
-        });
+    const result = await pool.query(
+      `
+      UPDATE clients
+      SET
+        nombre = $1,
+        email = $2,
+        telefono = $3,
+        activo = $4
+      WHERE id = $5
+      RETURNING *
+      `,
+      [
+        nombre,
+        email,
+        telefono,
+        activo,
+        id
+      ]
+    );
 
-    } catch (error) {
-        res.status(500).json({
-            error: 'Error al actualizar cliente'
-        });
-    }
+    res.json(
+      result.rows[0]
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Error actualizando cliente"
+    });
+  }
 };
 
+exports.changePassword = async (req, res) => {
+
+  try {
+
+    const {
+      client_id,
+      currentPassword,
+      newPassword
+    } = req.body;
+
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM clientes
+      WHERE id = $1
+      `,
+      [client_id]
+    );
+
+    if (result.rows.length === 0) {
+
+      return res.status(404).json({
+        error: "Cliente no encontrado"
+      });
+
+    }
+
+    const client = result.rows[0];
+
+    const validPassword =
+      await bcrypt.compare(
+        currentPassword,
+        client.password
+      );
+
+    if (!validPassword) {
+
+      return res.status(400).json({
+        error: "Contraseña actual incorrecta"
+      });
+
+    }
+
+    const hashedPassword =
+      await bcrypt.hash(
+        newPassword,
+        10
+      );
+
+    await pool.query(
+      `
+      UPDATE clientes
+      SET password = $1
+      WHERE id = $2
+      `,
+      [
+        hashedPassword,
+        client_id
+      ]
+    );
+
+    res.json({
+      message:
+        "Contraseña actualizada"
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error:
+        "Error cambiando contraseña"
+    });
+
+  }
+
+};
 
 exports.deleteClient = async (req, res) => {
     try {

@@ -59,10 +59,7 @@ exports.createOrderFromCart = async (req, res) => {
       });
     }
 
-    // =========================
     // CARRITO
-    // =========================
-
     const cartResponse = await axios.get(
       `${process.env.CART_SERVICE_URL}/api/cart/${cliente_id}`
     );
@@ -75,10 +72,7 @@ exports.createOrderFromCart = async (req, res) => {
       });
     }
 
-    // =========================
     // VALIDAR STOCK
-    // =========================
-
     for (const item of cart.items) {
 
       const stockResponse = await axios.post(
@@ -110,9 +104,7 @@ exports.createOrderFromCart = async (req, res) => {
       }
     }
 
-    // =========================
     // TOTAL
-    // =========================
     let discount = 0;
 
     let appliedCoupon = null;
@@ -219,10 +211,8 @@ exports.createOrderFromCart = async (req, res) => {
     const orderCode =
       `PS-${datePart}-${randomPart}`;
 
-    // =========================
-    // PAYMENT
-    // =========================
 
+    // PAYMENT
     let transactionId = null;
 
 
@@ -260,10 +250,7 @@ exports.createOrderFromCart = async (req, res) => {
 
     }
 
-    // =========================
     // CREAR ORDEN
-    // =========================
-
     const orderResult = await pool.query(
       `
 INSERT INTO orders
@@ -306,10 +293,7 @@ RETURNING *
 
     const order = orderResult.rows[0];
 
-    // =========================
     // HISTORIAL PENDING
-    // =========================
-
     await pool.query(
       `
       INSERT INTO order_status_history
@@ -322,10 +306,7 @@ RETURNING *
       ]
     );
 
-    // =========================
-    // LOG ORDER CREATED
-    // =========================
-
+    // CREAR LOG DE LA ORDEN
     try {
 
       await axios.post(
@@ -344,15 +325,12 @@ RETURNING *
       );
     }
 
-    // =========================
     // REDUCIR STOCK
-    // =========================
-
     const inventoryResponse = await axios.post(
       `${process.env.INVENTORY_SERVICE_URL}/api/inventory/reduce-order`,
       {
         items: cart.items,
-        order_code: order.order_code,
+        orderCode: order.order_code,
         items: cart.items
 
       }
@@ -366,10 +344,7 @@ RETURNING *
       JSON.stringify(inventoryResults, null, 2)
     );
 
-    // =========================
     // ORDER ITEMS
-    // =========================
-
     for (const item of cart.items) {
 
       const inventoryData = inventoryResults.find(
@@ -424,10 +399,7 @@ RETURNING *
       console.error(error.message);
     }
 
-    // =========================
     // AGRUPAR POR ALMACÉN
-    // =========================
-
     const shipmentsByWarehouse = {};
 
     inventoryResults.forEach(allocation => {
@@ -442,10 +414,7 @@ RETURNING *
 
     });
 
-    // =========================
     // CREAR SHIPMENTS
-    // =========================
-
     for (const warehouseId of Object.keys(shipmentsByWarehouse)) {
 
       try {
@@ -785,7 +754,6 @@ exports.getOrders = async (req, res) => {
   }
 };
 
-
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -907,13 +875,8 @@ exports.getOrderById = async (req, res) => {
   }
 };
 
-exports.getOrderStats = async (
-  req,
-  res
-) => {
-
+exports.getOrderStats = async (req, res) => {
   try {
-
     const result =
       await pool.query(`
 SELECT  COUNT(*) AS total_orders,
@@ -1002,6 +965,138 @@ WHERE estado_id NOT IN (5)
     res.status(500).json({
       error:
         "Error obteniendo estadísticas"
+    });
+
+  }
+
+};
+
+exports.getOrdersByClient = async (req, res) => {
+
+  try {
+
+    const { clienteId } =
+      req.params;
+
+    const result =
+      await pool.query(
+        `
+          SELECT
+            o.id,
+            o.order_code,
+            o.total,
+            o.fecha_creacion,
+            os.nombre AS estado
+          FROM orders o
+          JOIN order_status os
+            ON o.estado_id = os.id
+          WHERE o.cliente_id = $1
+          ORDER BY o.id DESC
+          `,
+        [clienteId]
+      );
+
+    res.json(
+      result.rows
+    );
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error:
+        "Error obteniendo pedidos"
+    });
+
+  }
+
+};
+
+exports.getOrderDetail = async (req, res) => {
+
+  try {
+
+    const { id } = req.params;
+
+    const orderResult = await pool.query(
+      `
+      SELECT
+        o.*,
+        os.nombre AS estado
+      FROM orders o
+      JOIN order_status os
+        ON o.estado_id = os.id
+      WHERE o.id = $1
+      `,
+      [id]
+    );
+
+    if (orderResult.rows.length === 0) {
+
+      return res.status(404).json({
+        error: "Orden no encontrada"
+      });
+
+    }
+
+    const itemsResult = await pool.query(
+      `
+      SELECT *
+      FROM order_items
+      WHERE order_id = $1
+      `,
+      [id]
+    );
+
+    const items = await Promise.all(
+
+      itemsResult.rows.map(async (item) => {
+
+        try {
+
+          const productResponse =
+            await axios.get(
+              `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+            );
+
+          return {
+            ...item,
+            nombre: productResponse.data.nombre
+          };
+
+        } catch (error) {
+
+          console.error(
+            `Error obteniendo producto ${item.producto_id}:`,
+            error.message
+          );
+
+          return {
+            ...item,
+            nombre: "Producto no disponible"
+          };
+
+        }
+
+      })
+
+    );
+
+    res.json({
+
+      order: orderResult.rows[0],
+
+      items
+
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      error: "Error obteniendo detalle de la orden"
     });
 
   }
