@@ -4,9 +4,12 @@ const { configDotenv } = require('dotenv');
 const jwt = require('jsonwebtoken');
 const logAction = require("../utils/audit");
 const JWT_SECRET = process.env.JWT_SECRET;
+const axios = require("axios");
 
 exports.registerEmployee = async (req, res) => {
+
     try {
+
         const { name, email, password, rol_id } = req.body;
 
         const existing = await pool.query(
@@ -15,45 +18,90 @@ exports.registerEmployee = async (req, res) => {
         );
 
         if (existing.rows.length > 0) {
+
             return res.status(400).json({
                 error: 'Empleado ya existe'
             });
+
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword =
+            await bcrypt.hash(password, 10);
 
         const result = await pool.query(
-            `INSERT INTO empleados (nombre, email, password)
-             VALUES ($1, $2, $3)
-             RETURNING id`,
-            [name, email, hashedPassword]
+            `
+            INSERT INTO empleados
+            (
+                nombre,
+                email,
+                password
+            )
+            VALUES
+            (
+                $1,
+                $2,
+                $3
+            )
+            RETURNING id
+            `,
+            [
+                name,
+                email,
+                hashedPassword
+            ]
         );
 
-        const empleadoId = result.rows[0].id;
+        const empleadoId =
+            result.rows[0].id;
 
-        const roleCheck = await pool.query(
-            `SELECT id FROM roles WHERE id = $1`,
-            [rol_id]
-        );
+        const roleCheck =
+            await pool.query(
+                `
+                SELECT id
+                FROM roles
+                WHERE id = $1
+                `,
+                [rol_id]
+            );
 
         if (roleCheck.rows.length === 0) {
+
             return res.status(400).json({
                 error: 'Rol no válido'
             });
+
         }
 
         await pool.query(
-            `INSERT INTO empleado_rol (empleado_id, rol_id)
-             VALUES ($1, $2)`,
-            [empleadoId, rol_id]
+            `
+            INSERT INTO empleado_rol
+            (
+                empleado_id,
+                rol_id
+            )
+            VALUES
+            (
+                $1,
+                $2
+            )
+            `,
+            [
+                empleadoId,
+                rol_id
+            ]
         );
+
+        // =========================
+        // AUDITORÍA
+        // =========================
+
         console.log({
-            suario_id: empleadoId,
+            usuario_id: empleadoId,
             rol: "EMPLEADO",
             accion: "REGISTER_EMPLOYEE",
             detalle: `Empleado ${email} registrado`
+        });
 
-        })
         await logAction({
             usuario_id: empleadoId,
             rol: "EMPLEADO",
@@ -61,17 +109,65 @@ exports.registerEmployee = async (req, res) => {
             detalle: `Empleado ${email} registrado`
         });
 
+        // =========================
+        // ENVÍO DE CREDENCIALES
+        // =========================
+
+        try {
+
+            await axios.post(
+                `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
+                {
+                    to: email,
+                    subject: "Credenciales de acceso - Panchito Store",
+                    html: `
+                        <h2>Bienvenido a Panchito Store</h2>
+
+                        <p>
+                            Se ha creado una cuenta para usted en el sistema administrativo.
+                        </p>
+
+                        <p>
+                            <strong>Usuario:</strong> ${email}
+                        </p>
+
+                        <p>
+                            <strong>Contraseña:</strong> ${password}
+                        </p>
+
+                        <p>
+                            Por seguridad se recomienda cambiar la contraseña después del primer acceso.
+                        </p>
+                    `
+                }
+            );
+
+        } catch (emailError) {
+
+            console.error(
+                "Error enviando credenciales:",
+                emailError.response?.data ||
+                emailError.message
+            );
+
+        }
+
         res.json({
             message: 'Empleado registrado correctamente'
         });
 
     } catch (error) {
+
         console.error("ERROR REAL:", error);
+
         res.status(500).json({
             error: 'Error en registro'
         });
+
     }
+
 };
+
 exports.loginEmployee = async (req, res) => {
     try {
         const { email, password } = req.body;
