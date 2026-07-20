@@ -178,27 +178,32 @@ exports.getShipmentById = async (req, res) => {
 
 //actualizar estado
 exports.updateShipmentStatus = async (req, res) => {
+
   try {
 
     const { id } = req.params;
     const { estado_id } = req.body;
 
-    const shipmentResult = await pool.query(
-      `
-      SELECT *
-      FROM shipments
-      WHERE id = $1
-      `,
-      [id]
-    );
+    const shipmentResult =
+      await pool.query(
+        `
+        SELECT *
+        FROM shipments
+        WHERE id = $1
+        `,
+        [id]
+      );
 
-    if (shipmentResult.rows.length === 0) {
+    if (
+      shipmentResult.rows.length === 0
+    ) {
+
       return res.status(404).json({
         error: "Envío no encontrado"
       });
+
     }
 
-    // actualizar estado actual
     await pool.query(
       `
       UPDATE shipments
@@ -208,39 +213,150 @@ exports.updateShipmentStatus = async (req, res) => {
       [estado_id, id]
     );
 
-    // registrar historial
     await pool.query(
       `
       INSERT INTO shipping_status_history
-      (shipment_id, estado_id)
-      VALUES ($1,$2)
+      (
+        shipment_id,
+        estado_id
+      )
+      VALUES
+      (
+        $1,
+        $2
+      )
       `,
       [id, estado_id]
     );
 
+    const shipment =
+      shipmentResult.rows[0];
+
+    // =========================
+    // EMAIL ENVÍO
+    // =========================
+
+    try {
+
+      const statusResult =
+        await pool.query(
+          `
+          SELECT nombre
+          FROM shipment_status
+          WHERE id = $1
+          `,
+          [estado_id]
+        );
+
+      const statusName =
+        statusResult.rows[0]?.nombre;
+
+      const orderResponse =
+        await axios.get(
+          `${process.env.ORDER_SERVICE_URL}/api/orders/${shipment.order_id}`
+        );
+
+      const order =
+        orderResponse.data;
+
+      const clientResponse =
+        await axios.get(
+          `${process.env.AUTH_SERVICE_URL}/api/clients/${order.cliente_id}`
+        );
+
+      const client =
+        clientResponse.data;
+
+      const templates = {
+
+        SHIPPED: {
+
+          subject:
+            `Envío ${shipment.tracking_code} despachado`,
+
+          html: `
+            <h2>Hola ${client.nombre}</h2>
+
+            <p>
+              Tu envío
+              <strong>${shipment.tracking_code}</strong>
+              ha sido despachado.
+            </p>
+
+            <p>
+              Pedido:
+              <strong>${order.order_code}</strong>
+            </p>
+          `
+        },
+
+        DELIVERED: {
+
+          subject:
+            `Envío ${shipment.tracking_code} entregado`,
+
+          html: `
+            <h2>Hola ${client.nombre}</h2>
+
+            <p>
+              Tu envío
+              <strong>${shipment.tracking_code}</strong>
+              fue entregado exitosamente.
+            </p>
+
+            <p>
+              Pedido:
+              <strong>${order.order_code}</strong>
+            </p>
+          `
+        }
+
+      };
+
+      const notification =
+        templates[statusName];
+
+      if (notification) {
+
+        await axios.post(
+          `${process.env.NOTIFICATION_SERVICE_URL}/api/email/send`,
+          {
+            to: client.email,
+            subject:
+              notification.subject,
+            html:
+              notification.html
+          }
+        );
+
+      }
+
+    } catch (emailError) {
+
+      console.error(
+        "Error enviando correo de envío:",
+        emailError.response?.data ||
+        emailError.message
+      );
+
+    }
+
     // =========================
     // SINCRONIZAR ORDER
     // =========================
-
-    const shipment = shipmentResult.rows[0];
-
 
     const orderStatusId =
       await recalculateOrderStatus(
         shipment.order_id
       );
 
-    console.log(
-      "Nuevo estado calculado:",
-      orderStatusId
-    );
-
     try {
 
       await axios.patch(
         `${process.env.ORDER_SERVICE_URL}/api/orders/${shipment.order_id}/status`,
         {
-          estado_id: orderStatusId
+          estado_id:
+            orderStatusId
         }
       );
 
@@ -259,7 +375,8 @@ exports.updateShipmentStatus = async (req, res) => {
     }
 
     res.json({
-      message: "Estado actualizado"
+      message:
+        "Estado actualizado"
     });
 
   } catch (error) {
@@ -267,10 +384,12 @@ exports.updateShipmentStatus = async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error: "Error actualizando estado"
+      error:
+        "Error actualizando estado"
     });
 
   }
+
 };
 
 //obtener historial de un envio

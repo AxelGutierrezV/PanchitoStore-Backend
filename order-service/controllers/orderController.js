@@ -758,7 +758,6 @@ exports.updateOrderStatus = async (req, res) => {
   try {
 
     const { id } = req.params;
-
     const { estado_id } = req.body;
 
     await pool.query(
@@ -786,10 +785,6 @@ exports.updateOrderStatus = async (req, res) => {
       [id, estado_id]
     );
 
-    // =========================
-    // OBTENER DATOS ORDEN
-    // =========================
-
     const orderResult =
       await pool.query(
         `
@@ -802,10 +797,6 @@ exports.updateOrderStatus = async (req, res) => {
 
     const order =
       orderResult.rows[0];
-
-    // =========================
-    // OBTENER NOMBRE DEL ESTADO
-    // =========================
 
     const statusResult =
       await pool.query(
@@ -820,10 +811,6 @@ exports.updateOrderStatus = async (req, res) => {
     const statusName =
       statusResult.rows[0]?.nombre;
 
-    // =========================
-    // OBTENER CLIENTE
-    // =========================
-
     const clientResponse =
       await axios.get(
         `${process.env.AUTH_SERVICE_URL}/api/clients/${order.cliente_id}`
@@ -831,10 +818,6 @@ exports.updateOrderStatus = async (req, res) => {
 
     const client =
       clientResponse.data;
-
-    // =========================
-    // TEMPLATES EMAIL
-    // =========================
 
     const templates = {
 
@@ -856,49 +839,6 @@ exports.updateOrderStatus = async (req, res) => {
             Estamos preparando tu compra.
           </p>
         `
-
-      },
-
-      SHIPPED: {
-
-        subject:
-          "Pedido enviado",
-
-        html: `
-          <h2>Hola ${client.nombre}</h2>
-
-          <p>
-            Tu pedido
-            <strong>${order.order_code}</strong>
-            ha sido enviado.
-          </p>
-
-          <p>
-            Muy pronto llegará a tu dirección.
-          </p>
-        `
-
-      },
-
-      DELIVERED: {
-
-        subject:
-          "Pedido entregado",
-
-        html: `
-          <h2>Hola ${client.nombre}</h2>
-
-          <p>
-            Tu pedido
-            <strong>${order.order_code}</strong>
-            fue entregado exitosamente.
-          </p>
-
-          <p>
-            Gracias por comprar en Panchito Store.
-          </p>
-        `
-
       },
 
       CANCELLED: {
@@ -915,7 +855,6 @@ exports.updateOrderStatus = async (req, res) => {
             ha sido cancelado.
           </p>
         `
-
       }
 
     };
