@@ -511,42 +511,56 @@ RETURNING *
       `${process.env.CART_SERVICE_URL}/api/cart/${cliente_id}`
     );
 
+try {
+
+  await axios.post(
+    `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+    {
+      accion: "PURCHASE_COMPLETED",
+      detalle: `Compra completada orden ${order.id}`,
+      servicio: "order-service"
+    }
+  );
+
+} catch (error) {
+  console.error(error.message);
+}
+
+
+// OBTENER NOMBRES PRODUCTOS
+const itemsWithNames = await Promise.all(
+
+  cart.items.map(async (item) => {
+
     try {
 
-      await axios.post(
-        `${process.env.LOGGING_SERVICE_URL}/api/logs`,
-        {
-          accion: "PURCHASE_COMPLETED",
-          detalle: `Compra completada orden ${order.id}`,
-          servicio: "order-service"
-        }
-      );
+      const response =
+        await axios.get(
+          `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+        );
+
+      return {
+        ...item,
+        nombre: response.data.nombre
+      };
 
     } catch (error) {
-      console.error(error.message);
+
+      console.error(
+        `Error obteniendo producto ${item.producto_id}:`,
+        error.message
+      );
+
+      return {
+        ...item,
+        nombre: "Producto no disponible"
+      };
+
     }
 
-    const productsHtml = cart.items
-      .map(item => `
-      <tr>
-        <td style="padding:8px;border:1px solid #ddd;">
-          ${item.nombre}
-        </td>
+  })
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
-          ${item.cantidad}
-        </td>
-
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${Number(item.precio).toFixed(2)}
-        </td>
-
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
-        </td>
-      </tr>
-    `)
-      .join("");
+);
     // =========================
     // EMAIL
     // =========================
