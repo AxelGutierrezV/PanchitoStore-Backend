@@ -552,6 +552,13 @@ RETURNING *
     // =========================
 
     try {
+      const productsHtml = itemsWithNames
+        .map(item => `
+    ...
+    ${item.nombre}
+    ...
+  `)
+        .join("");
 
       await axios.post(
         `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
@@ -1228,3 +1235,36 @@ exports.getOrderDetail = async (req, res) => {
   }
 
 };
+
+const itemsWithNames = await Promise.all(
+
+  cart.items.map(async (item) => {
+
+    try {
+
+      const response = await axios.get(
+        `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+      );
+
+      return {
+        ...item,
+        nombre: response.data.nombre
+      };
+
+    } catch (err) {
+
+      console.error(
+        `Error obteniendo producto ${item.producto_id}`,
+        err.message
+      );
+
+      return {
+        ...item,
+        nombre: "Producto no disponible"
+      };
+
+    }
+
+  })
+
+);
