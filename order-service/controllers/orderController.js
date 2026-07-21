@@ -511,63 +511,65 @@ RETURNING *
       `${process.env.CART_SERVICE_URL}/api/cart/${cliente_id}`
     );
 
-try {
+    try {
 
-  await axios.post(
-    `${process.env.LOGGING_SERVICE_URL}/api/logs`,
-    {
-      accion: "PURCHASE_COMPLETED",
-      detalle: `Compra completada orden ${order.id}`,
-      servicio: "order-service"
+      await axios.post(
+        `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+        {
+          accion: "PURCHASE_COMPLETED",
+          detalle: `Compra completada orden ${order.id}`,
+          servicio: "order-service"
+        }
+      );
+
+    } catch (error) {
+      console.error(error.message);
     }
-  );
+    console.log("PASO 1");
 
-} catch (error) {
-  console.error(error.message);
-}
+    // =========================
+    // EMAIL
+    // =========================
 
+    try {
 
-// =========================
-// EMAIL
-// =========================
+      const itemsWithNames = await Promise.all(
 
-try {
+        cart.items.map(async (item) => {
 
-  const itemsWithNames = await Promise.all(
+          try {
 
-    cart.items.map(async (item) => {
+            const response = await axios.get(
+              `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+            );
 
-      try {
+            return {
+              ...item,
+              nombre: response.data.nombre
+            };
 
-        const response = await axios.get(
-          `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
-        );
+          } catch (error) {
 
-        return {
-          ...item,
-          nombre: response.data.nombre
-        };
+            console.error(
+              `Error obteniendo producto ${item.producto_id}:`,
+              error.message
+            );
 
-      } catch (error) {
+            return {
+              ...item,
+              nombre: "Producto no disponible"
+            };
 
-        console.error(
-          `Error obteniendo producto ${item.producto_id}:`,
-          error.message
-        );
+          }
 
-        return {
-          ...item,
-          nombre: "Producto no disponible"
-        };
+        })
 
-      }
+      );
 
-    })
+      console.log("PASO 2");
 
-  );
-
-  const productsHtml = itemsWithNames
-    .map(item => `
+      const productsHtml = itemsWithNames
+        .map(item => `
       <tr>
 
         <td style="padding:8px;border:1px solid #ddd;">
@@ -588,29 +590,33 @@ try {
 
       </tr>
     `)
-    .join("");
-
-  await axios.post(
-    `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
-    {
-      to: client.email,
-      subject: `Compra confirmada - ${order.order_code}`,
-      html: `
+        .join("");
+      console.log("PASO 3");
+      await axios.post(
+        `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
+        {
+          to: client.email,
+          subject: `Compra confirmada - ${order.order_code}`,
+          html: `
       ...
       ${productsHtml}
       ...
       `
+        }
+      );
+        console.log("PASO 4");
+    } catch (emailError) {
+
+      console.error(
+        "Email error:",
+        emailError.message
+      );
+
     }
-  );
 
-} catch (emailError) {
 
-  console.error(
-    "Email error:",
-    emailError.message
-  );
-
-}
+  
+console.log("PASO 5");
     // =========================
     // RESPUESTA
     // =========================
