@@ -719,19 +719,25 @@ RETURNING *
 
     console.log("FINAL 2");
 
-  } catch (error) {
+} catch (error) {
 
-    console.error(
-      "ERROR REAL:",
-      error
-    );
+  console.error("ERROR REAL:", error);
 
-    res.status(500).json({
-      error: "Error en flujo completo"
-    });
+  console.error(
+    "RESPONSE:",
+    error.response?.data
+  );
 
-  }
+  console.error(
+    "STATUS:",
+    error.response?.status
+  );
 
+  res.status(500).json({
+    error: "Error en flujo completo"
+  });
+
+}
 };
 
 exports.getOrders = async (req, res) => {
