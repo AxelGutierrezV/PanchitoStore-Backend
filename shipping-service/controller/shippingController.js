@@ -149,9 +149,7 @@ exports.updateShipmentStatus = async (req, res) => {
         [id]
       );
 
-    if (
-      shipmentResult.rows.length === 0
-    ) {
+    if (shipmentResult.rows.length === 0) {
 
       return res.status(404).json({
         error: "Envío no encontrado"
@@ -188,8 +186,10 @@ exports.updateShipmentStatus = async (req, res) => {
       shipmentResult.rows[0];
 
     // =========================
-    // EMAIL ENVÍO
+    // OBTENER NOMBRE DEL ESTADO
     // =========================
+
+    let statusName = null;
 
     try {
 
@@ -203,8 +203,23 @@ exports.updateShipmentStatus = async (req, res) => {
           [estado_id]
         );
 
-      const statusName =
+      statusName =
         statusResult.rows[0]?.nombre;
+
+    } catch (error) {
+
+      console.error(
+        "Error obteniendo estado:",
+        error.message
+      );
+
+    }
+
+    // =========================
+    // EMAIL ENVÍO
+    // =========================
+
+    try {
 
       const orderResponse =
         await axios.get(
@@ -277,14 +292,28 @@ exports.updateShipmentStatus = async (req, res) => {
           `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
           {
             to: client.email,
-            subject:
-              notification.subject,
-            html:
-              notification.html
+            subject: notification.subject,
+            html: notification.html
           }
         );
 
       }
+
+    } catch (emailError) {
+
+      console.error(
+        "Error enviando correo de envío:",
+        emailError.response?.data ||
+        emailError.message
+      );
+
+    }
+
+    // =========================
+    // AUDITORÍA
+    // =========================
+
+    try {
 
       switch (Number(estado_id)) {
 
@@ -292,8 +321,8 @@ exports.updateShipmentStatus = async (req, res) => {
 
           await createLog(
             "SHIPMENT_CONFIRMED",
-            `Shipment ${id} confirmado`,
-            id
+            `Shipment ${shipment.id} confirmado`,
+            shipment.id
           );
 
           break;
@@ -302,8 +331,8 @@ exports.updateShipmentStatus = async (req, res) => {
 
           await createLog(
             "SHIPMENT_IN_TRANSIT",
-            `Shipment ${id} en tránsito`,
-            id
+            `Shipment ${shipment.id} en tránsito`,
+            shipment.id
           );
 
           break;
@@ -312,8 +341,8 @@ exports.updateShipmentStatus = async (req, res) => {
 
           await createLog(
             "SHIPMENT_DELIVERED",
-            `Shipment ${id} entregado`,
-            id
+            `Shipment ${shipment.id} entregado`,
+            shipment.id
           );
 
           break;
@@ -322,21 +351,19 @@ exports.updateShipmentStatus = async (req, res) => {
 
           await createLog(
             "SHIPMENT_CANCELLED",
-            `Shipment ${id} cancelado`,
-            id
+            `Shipment ${shipment.id} cancelado`,
+            shipment.id
           );
 
           break;
 
       }
-      res.json(shipment);
 
-    } catch (emailError) {
+    } catch (logError) {
 
       console.error(
-        "Error enviando correo de envío:",
-        emailError.response?.data ||
-        emailError.message
+        "Logging error:",
+        logError.message
       );
 
     }
@@ -375,8 +402,7 @@ exports.updateShipmentStatus = async (req, res) => {
     }
 
     res.json({
-      message:
-        "Estado actualizado"
+      message: "Estado actualizado"
     });
 
   } catch (error) {
@@ -384,8 +410,7 @@ exports.updateShipmentStatus = async (req, res) => {
     console.error(error);
 
     res.status(500).json({
-      error:
-        "Error actualizando estado"
+      error: "Error actualizando estado"
     });
 
   }
