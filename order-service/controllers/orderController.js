@@ -259,7 +259,6 @@ INSERT INTO orders
   subtotal,
   discount,
   total,
-  coupon_code,
   estado_id,
   order_code,
   transaction_id
@@ -272,8 +271,7 @@ VALUES
   $4,
   $5,
   $6,
-  $7,
-  $8
+  $7
 )
 RETURNING *
       `,
@@ -282,7 +280,6 @@ RETURNING *
         subtotal,
         discount,
         total,
-        appliedCoupon?.codigo || null,
         1,
         orderCode,
         transactionId
