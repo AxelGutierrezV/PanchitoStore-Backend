@@ -526,8 +526,8 @@ RETURNING *
       console.error(error.message);
     }
 
-    const productsHtml =  cart.items
-        .map(item => `
+    const productsHtml = cart.items
+      .map(item => `
       <tr>
         <td style="padding:8px;border:1px solid #ddd;">
           ${item.nombre}
@@ -546,7 +546,7 @@ RETURNING *
         </td>
       </tr>
     `)
-        .join("");
+      .join("");
     // =========================
     // EMAIL
     // =========================
@@ -1170,6 +1170,16 @@ exports.getOrderDetail = async (req, res) => {
       itemsResult.rows.map(async (item) => {
 
         try {
+
+          console.log(
+            "PRODUCT_SERVICE_URL:",
+            process.env.PRODUCT_SERVICE_URL
+          );
+
+          console.log(
+            "Consultando:",
+            `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+          );
 
           const productResponse =
             await axios.get(
