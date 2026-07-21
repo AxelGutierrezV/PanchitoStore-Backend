@@ -527,40 +527,6 @@ try {
 }
 
 
-// OBTENER NOMBRES PRODUCTOS
-const itemsWithNames = await Promise.all(
-
-  cart.items.map(async (item) => {
-
-    try {
-
-      const response =
-        await axios.get(
-          `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
-        );
-
-      return {
-        ...item,
-        nombre: response.data.nombre
-      };
-
-    } catch (error) {
-
-      console.error(
-        `Error obteniendo producto ${item.producto_id}:`,
-        error.message
-      );
-
-      return {
-        ...item,
-        nombre: "Producto no disponible"
-      };
-
-    }
-
-  })
-
-);
 // =========================
 // EMAIL
 // =========================
@@ -1182,36 +1148,3 @@ exports.getOrderDetail = async (req, res) => {
   }
 
 };
-
-const itemsWithNames = await Promise.all(
-
-  cart.items.map(async (item) => {
-
-    try {
-
-      const response = await axios.get(
-        `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
-      );
-
-      return {
-        ...item,
-        nombre: response.data.nombre
-      };
-
-    } catch (err) {
-
-      console.error(
-        `Error obteniendo producto ${item.producto_id}`,
-        err.message
-      );
-
-      return {
-        ...item,
-        nombre: "Producto no disponible"
-      };
-
-    }
-
-  })
-
-);
