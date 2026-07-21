@@ -502,8 +502,7 @@ RETURNING *
       }
 
     }
-
-    // =========================
+// =========================
     // LIMPIAR CARRITO
     // =========================
 
@@ -511,21 +510,10 @@ RETURNING *
       `${process.env.CART_SERVICE_URL}/api/cart/${cliente_id}`
     );
 
-    try {
+    // =========================
+    // LOG COMPRA COMPLETADA
+    // =========================
 
-      await axios.post(
-        `${process.env.LOGGING_SERVICE_URL}/api/logs`,
-        {
-          accion: "PURCHASE_COMPLETED",
-          detalle: `Compra completada orden ${order.id}`,
-          servicio: "order-service"
-        }
-      );
-
-    } catch (error) {
-      console.error(error.message);
-    }
-    console.log("PASO 1");
     try {
 
       await axios.post(
@@ -540,95 +528,127 @@ RETURNING *
     } catch (error) {
 
       console.error(
-        `Error obteniendo producto ${item.producto_id}:`,
+        "Logging error:",
         error.message
       );
 
-      return {
-        ...item,
-        nombre: "Producto no disponible"
-      };
-
     }
 
-  })
+    // =========================
+    // EMAIL
+    // =========================
 
-);
-// =========================
-// EMAIL
-// =========================
+    try {
 
-try {
+      const itemsWithNames = await Promise.all(
 
-  const itemsWithNames = await Promise.all(
+        cart.items.map(async (item) => {
 
-    cart.items.map(async (item) => {
+          try {
 
-      try {
+            const response = await axios.get(
+              `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+            );
 
-        const response = await axios.get(
-          `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
-        );
+            return {
+              ...item,
+              nombre: response.data.nombre
+            };
 
-        return {
-          ...item,
-          nombre: response.data.nombre
-        };
+          } catch (error) {
 
-      } catch (error) {
+            console.error(
+              `Error obteniendo producto ${item.producto_id}:`,
+              error.message
+            );
 
-        console.error(
-          `Error obteniendo producto ${item.producto_id}:`,
-          error.message
-        );
+            return {
+              ...item,
+              nombre: "Producto no disponible"
+            };
 
-        return {
-          ...item,
-          nombre: "Producto no disponible"
-        };
+          }
 
-      }
+        })
 
-    })
+      );
 
-  );
+      const productsHtml = itemsWithNames
+        .map(item => `
+          <tr>
 
-  const productsHtml = itemsWithNames
-    .map(item => `
-      <tr>
+            <td style="padding:8px;border:1px solid #ddd;">
+              ${item.nombre}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;">
-          ${item.nombre}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+              ${item.cantidad}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
-          ${item.cantidad}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+              S/ ${Number(item.precio).toFixed(2)}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${Number(item.precio).toFixed(2)}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+              S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
-        </td>
+          </tr>
+        `)
+        .join("");
 
-      </tr>
-    `)
-    .join("");
+      await axios.post(
+        `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
+        {
+          to: client.email,
+          subject: `Compra confirmada - ${order.order_code}`,
+          html: `
+            <h1>Gracias por tu compra</h1>
 
-  await axios.post(
-    `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
-    {
-      to: client.email,
-      subject: `Compra confirmada - ${order.order_code}`,
-      html: `
-      ...
-      ${productsHtml}
-      ...
-      `
-    }
-  );
+            <p>Hola ${client.nombre},</p>
+
+            <p>
+              Tu pedido fue registrado correctamente.
+            </p>
+
+            <p>
+              <strong>Pedido:</strong>
+              ${order.order_code}
+            </p>
+
+            <p>
+              <strong>Transacción:</strong>
+              ${order.transaction_id}
+            </p>
+
+            <table
+              style="
+                border-collapse:collapse;
+                width:100%;
+              "
+            >
+              <tbody>
+                ${productsHtml}
+              </tbody>
+            </table>
+
+            <p>
+              <strong>Subtotal:</strong>
+              S/ ${Number(subtotal).toFixed(2)}
+            </p>
+
+            <p>
+              <strong>Descuento:</strong>
+              S/ ${Number(discount).toFixed(2)}
+            </p>
+
+            <p>
+              <strong>Total:</strong>
+              S/ ${Number(total).toFixed(2)}
+            </p>
+          `
+        }
+      );
 
     } catch (emailError) {
 
@@ -643,25 +663,7 @@ try {
     // RESPUESTA
     // =========================
 
-    res.json({
-      message: "Compra completada",
-      order_id: order.id,
-      order_code: order.order_code,
-      transaction_id:
-        order.transaction_id,
-      subtotal,
-      discount,
-      total,
-      coupon_code:
-        appliedCoupon?.codigo || null
-    });
-    // =========================
-    // RESPUESTA
-    // =========================
-
-    console.log("FINAL 1");
-
-    res.json({
+    return res.json({
       message: "Compra completada",
       order_id: order.id,
       order_code: order.order_code,
@@ -673,27 +675,28 @@ try {
         appliedCoupon?.codigo || null
     });
 
-    console.log("FINAL 2");
+  } catch (error) {
 
-} catch (error) {
+    console.error(
+      "ERROR REAL:",
+      error
+    );
 
-  console.error("ERROR REAL:", error);
+    console.error(
+      "RESPONSE:",
+      error.response?.data
+    );
 
-  console.error(
-    "RESPONSE:",
-    error.response?.data
-  );
+    console.error(
+      "STATUS:",
+      error.response?.status
+    );
 
-  console.error(
-    "STATUS:",
-    error.response?.status
-  );
+    return res.status(500).json({
+      error: "Error en flujo completo"
+    });
 
-  res.status(500).json({
-    error: "Error en flujo completo"
-  });
-
-}
+  }
 };
 
 exports.getOrders = async (req, res) => {
