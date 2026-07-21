@@ -703,12 +703,13 @@ RETURNING *
     // RESPUESTA
     // =========================
 
+    console.log("FINAL 1");
+
     res.json({
       message: "Compra completada",
       order_id: order.id,
       order_code: order.order_code,
-      transaction_id:
-        order.transaction_id,
+      transaction_id: order.transaction_id,
       subtotal,
       discount,
       total,
@@ -716,15 +717,21 @@ RETURNING *
         appliedCoupon?.codigo || null
     });
 
+    console.log("FINAL 2");
+
   } catch (error) {
 
-    console.error(error);
+    console.error(
+      "ERROR REAL:",
+      error
+    );
 
     res.status(500).json({
       error: "Error en flujo completo"
     });
 
   }
+
 };
 
 exports.getOrders = async (req, res) => {
