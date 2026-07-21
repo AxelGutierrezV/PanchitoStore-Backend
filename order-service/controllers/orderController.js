@@ -561,157 +561,90 @@ const itemsWithNames = await Promise.all(
   })
 
 );
-    // =========================
-    // EMAIL
-    // =========================
+// =========================
+// EMAIL
+// =========================
 
-    try {
-      const productsHtml = itemsWithNames
-        .map(item => `
-    ...
-    ${item.nombre}
-    ...
-  `)
-        .join("");
+try {
 
-      await axios.post(
-        `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
-        {
-          to: client.email,
-          subject: `Compra confirmada - ${order.order_code}`,
-          html: `
-  <h1>
-    Gracias por tu compra
-  </h1>
+  const itemsWithNames = await Promise.all(
 
-  <p>
-    Hola ${client.nombre},
-  </p>
+    cart.items.map(async (item) => {
 
-  <p>
-    Tu pedido fue registrado correctamente.
-  </p>
+      try {
 
-  <hr />
+        const response = await axios.get(
+          `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
+        );
 
-  <p>
-    <strong>Pedido:</strong>
-    ${order.order_code}
-  </p>
+        return {
+          ...item,
+          nombre: response.data.nombre
+        };
 
-  <p>
-    <strong>Transacción:</strong>
-    ${order.transaction_id}
-  </p>
+      } catch (error) {
 
-  <h3>
-    Productos comprados
-  </h3>
+        console.error(
+          `Error obteniendo producto ${item.producto_id}:`,
+          error.message
+        );
 
-  <table
-    style="
-      border-collapse:collapse;
-      width:100%;
-    "
-  >
+        return {
+          ...item,
+          nombre: "Producto no disponible"
+        };
 
-    <thead>
+      }
 
+    })
+
+  );
+
+  const productsHtml = itemsWithNames
+    .map(item => `
       <tr>
 
-        <th
-          style="
-            border:1px solid #ddd;
-            padding:8px;
-          "
-        >
-          Producto
-        </th>
+        <td style="padding:8px;border:1px solid #ddd;">
+          ${item.nombre}
+        </td>
 
-        <th
-          style="
-            border:1px solid #ddd;
-            padding:8px;
-          "
-        >
-          Cantidad
-        </th>
+        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+          ${item.cantidad}
+        </td>
 
-        <th
-          style="
-            border:1px solid #ddd;
-            padding:8px;
-          "
-        >
-          Precio
-        </th>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+          S/ ${Number(item.precio).toFixed(2)}
+        </td>
 
-        <th
-          style="
-            border:1px solid #ddd;
-            padding:8px;
-          "
-        >
-          Subtotal
-        </th>
+        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+          S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
+        </td>
 
       </tr>
+    `)
+    .join("");
 
-    </thead>
-
-    <tbody>
-
+  await axios.post(
+    `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
+    {
+      to: client.email,
+      subject: `Compra confirmada - ${order.order_code}`,
+      html: `
+      ...
       ${productsHtml}
-
-    </tbody>
-
-  </table>
-
-  <br />
-
-  <p>
-    <strong>Subtotal:</strong>
-    S/ ${Number(subtotal).toFixed(2)}
-  </p>
-
-  <p>
-    <strong>Descuento:</strong>
-    S/ ${Number(discount).toFixed(2)}
-  </p>
-
-  <p>
-    <strong>Total:</strong>
-    S/ ${Number(total).toFixed(2)}
-  </p>
-
-  ${appliedCoupon
-              ? `
-        <p>
-          <strong>Cupón aplicado:</strong>
-          ${appliedCoupon.codigo}
-        </p>
+      ...
       `
-              : ""
-            }
-
-  <hr />
-
-  <p>
-    Gracias por comprar en Panchito Store.
-  </p>
-`
-        }
-      );
-
-    } catch (emailError) {
-
-      console.error(
-        "Email error:",
-        emailError.message
-      );
-
     }
+  );
 
+} catch (emailError) {
+
+  console.error(
+    "Email error:",
+    emailError.message
+  );
+
+}
     // =========================
     // RESPUESTA
     // =========================
