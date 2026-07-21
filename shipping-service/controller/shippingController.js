@@ -52,51 +52,6 @@ exports.createShipment = async (req, res) => {
       ]
     );
 
-    switch (Number(shipment.estado_id)) {
-
-      case 2:
-
-        await createLog(
-          "SHIPMENT_CONFIRMED",
-          `Shipment ${id} confirmado`,
-          id
-        );
-
-        break;
-
-      case 3:
-
-        await createLog(
-          "SHIPMENT_IN_TRANSIT",
-          `Shipment ${id} en tránsito`,
-          id
-        );
-
-        break;
-
-      case 4:
-
-        await createLog(
-          "SHIPMENT_DELIVERED",
-          `Shipment ${id} entregado`,
-          id
-        );
-
-        break;
-
-      case 5:
-
-        await createLog(
-          "SHIPMENT_CANCELLED",
-          `Shipment ${id} cancelado`,
-          id
-        );
-
-        break;
-
-    }
-    res.json(shipment);
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Error creando envío" });
@@ -330,6 +285,51 @@ exports.updateShipmentStatus = async (req, res) => {
         );
 
       }
+
+      switch (Number(estado_id)) {
+
+        case 2:
+
+          await createLog(
+            "SHIPMENT_CONFIRMED",
+            `Shipment ${id} confirmado`,
+            id
+          );
+
+          break;
+
+        case 3:
+
+          await createLog(
+            "SHIPMENT_IN_TRANSIT",
+            `Shipment ${id} en tránsito`,
+            id
+          );
+
+          break;
+
+        case 4:
+
+          await createLog(
+            "SHIPMENT_DELIVERED",
+            `Shipment ${id} entregado`,
+            id
+          );
+
+          break;
+
+        case 5:
+
+          await createLog(
+            "SHIPMENT_CANCELLED",
+            `Shipment ${id} cancelado`,
+            id
+          );
+
+          break;
+
+      }
+      res.json(shipment);
 
     } catch (emailError) {
 
