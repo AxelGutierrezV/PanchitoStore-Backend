@@ -526,6 +526,20 @@ RETURNING *
       console.error(error.message);
     }
     console.log("PASO 1");
+    try {
+
+      await axios.post(
+        `${process.env.LOGGING_SERVICE_URL}/api/logs`,
+        {
+          accion: "PURCHASE_COMPLETED",
+          detalle: `Compra completada orden ${order.id}`,
+          servicio: "order-service"
+        }
+      );
+
+    } catch (error) {
+      console.error(error.message);
+    }
 
     // =========================
     // EMAIL
@@ -533,78 +547,133 @@ RETURNING *
 
     try {
 
-      const itemsWithNames = await Promise.all(
-
-        cart.items.map(async (item) => {
-
-          try {
-
-            const response = await axios.get(
-              `${process.env.PRODUCT_SERVICE_URL}/api/products/${item.producto_id}`
-            );
-
-            return {
-              ...item,
-              nombre: response.data.nombre
-            };
-
-          } catch (error) {
-
-            console.error(
-              `Error obteniendo producto ${item.producto_id}:`,
-              error.message
-            );
-
-            return {
-              ...item,
-              nombre: "Producto no disponible"
-            };
-
-          }
-
-        })
-
-      );
-
-      console.log("PASO 2");
-
-      const productsHtml = itemsWithNames
+      const productsHtml = cart.items
         .map(item => `
-      <tr>
+          <tr>
 
-        <td style="padding:8px;border:1px solid #ddd;">
-          ${item.nombre}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;">
+              ${item.nombre || "Producto"}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:center;">
-          ${item.cantidad}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:center;">
+              ${item.cantidad}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${Number(item.precio).toFixed(2)}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+              S/ ${Number(item.precio).toFixed(2)}
+            </td>
 
-        <td style="padding:8px;border:1px solid #ddd;text-align:right;">
-          S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
-        </td>
+            <td style="padding:8px;border:1px solid #ddd;text-align:right;">
+              S/ ${(Number(item.precio) * Number(item.cantidad)).toFixed(2)}
+            </td>
 
-      </tr>
-    `)
+          </tr>
+        `)
         .join("");
-      console.log("PASO 3");
+
       await axios.post(
         `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
         {
           to: client.email,
           subject: `Compra confirmada - ${order.order_code}`,
           html: `
-      ...
-      ${productsHtml}
-      ...
-      `
+            <h1>Gracias por tu compra</h1>
+
+            <p>
+              Hola ${client.nombre},
+            </p>
+
+            <p>
+              Tu pedido fue registrado correctamente.
+            </p>
+
+            <hr />
+
+            <p>
+              <strong>Pedido:</strong>
+              ${order.order_code}
+            </p>
+
+            <p>
+              <strong>Transacción:</strong>
+              ${order.transaction_id}
+            </p>
+
+            <table
+              style="
+                border-collapse:collapse;
+                width:100%;
+              "
+            >
+
+              <thead>
+
+                <tr>
+
+                  <th style="border:1px solid #ddd;padding:8px;">
+                    Producto
+                  </th>
+
+                  <th style="border:1px solid #ddd;padding:8px;">
+                    Cantidad
+                  </th>
+
+                  <th style="border:1px solid #ddd;padding:8px;">
+                    Precio
+                  </th>
+
+                  <th style="border:1px solid #ddd;padding:8px;">
+                    Subtotal
+                  </th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                ${productsHtml}
+
+              </tbody>
+
+            </table>
+
+            <br />
+
+            <p>
+              <strong>Subtotal:</strong>
+              S/ ${Number(subtotal).toFixed(2)}
+            </p>
+
+            <p>
+              <strong>Descuento:</strong>
+              S/ ${Number(discount).toFixed(2)}
+            </p>
+
+            <p>
+              <strong>Total:</strong>
+              S/ ${Number(total).toFixed(2)}
+            </p>
+
+            ${appliedCoupon
+              ? `
+              <p>
+                <strong>Cupón aplicado:</strong>
+                ${appliedCoupon.codigo}
+              </p>
+              `
+              : ""
+            }
+
+            <hr />
+
+            <p>
+              Gracias por comprar en Panchito Store.
+            </p>
+          `
         }
       );
-        console.log("PASO 4");  
+
     } catch (emailError) {
 
       console.error(
@@ -614,9 +683,22 @@ RETURNING *
 
     }
 
+    // =========================
+    // RESPUESTA
+    // =========================
 
-  
-console.log("PASO 5");
+    res.json({
+      message: "Compra completada",
+      order_id: order.id,
+      order_code: order.order_code,
+      transaction_id:
+        order.transaction_id,
+      subtotal,
+      discount,
+      total,
+      coupon_code:
+        appliedCoupon?.codigo || null
+    });
     // =========================
     // RESPUESTA
     // =========================
