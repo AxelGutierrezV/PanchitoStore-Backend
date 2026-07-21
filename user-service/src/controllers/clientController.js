@@ -143,7 +143,7 @@ exports.updateClient = async (req, res) => {
 
     const result = await pool.query(
       `
-      UPDATE clients
+      UPDATE clientes
       SET
         nombre = $1,
         email = $2,
