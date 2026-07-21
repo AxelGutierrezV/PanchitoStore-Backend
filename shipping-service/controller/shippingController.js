@@ -319,7 +319,7 @@ exports.updateShipmentStatus = async (req, res) => {
       if (notification) {
 
         await axios.post(
-          `${process.env.NOTIFICATION_SERVICE_URL}/api/email/send`,
+          `${process.env.NOTIFICATION_SERVICE_URL}/api/notifications/email`,
           {
             to: client.email,
             subject:
