@@ -242,7 +242,7 @@ exports.updateShipmentStatus = async (req, res) => {
         await pool.query(
           `
           SELECT nombre
-          FROM shipment_status
+          FROM shipping_status
           WHERE id = $1
           `,
           [estado_id]
