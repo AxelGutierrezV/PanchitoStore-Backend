@@ -604,7 +604,7 @@ RETURNING *
       `
         }
       );
-        console.log("PASO 4");
+        console.log("PASO 4");  
     } catch (emailError) {
 
       console.error(
